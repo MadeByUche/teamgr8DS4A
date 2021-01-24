@@ -1,43 +1,30 @@
 """
-High level todo
-    DATA ISSUES
-        hospital_hchaps
-            need to expand footnotes
-        timely_effective_care_hospital
-            need to expand footnotes
-            score -> has 'HIGH' instead of an integer there....
+WORK
+    -> generating clean prod output
+        -> output shouldn't have leading index column
+        -> Footnote cleansing
+            -> there is already a footnote expansion column, since some of them have comma's (i think)
+                -> however we can probably do a string contains search
+            -> cleaning pipeline should indicate the number of records that were scrubbed due tot he footnote process
+                -> additionally a pipeline should be generated that does contain foot note data (to enable
+                    future footnote analysis)
+        -> categorical data as dummies (certain measures in timely and effective care as well as complications and deths)
+        -> cleaning pipeline: us_city_population_estimates
+    -> adding analysis pipeline functionality
+        -> dataset generation
+            -> generating merged dataset that was used for phase 1 analysis
+            -> generating merged datasetst that were used for phase 2 analysis
+                -> hospital with population data
+                -> timely and effective care + complications and deaths need expanded output
 
-    -> Analysis
-        https://towardsdatascience.com/eveything-you-need-to-know-about-interpreting-correlations-2c485841c0b8
-
-    -> CLEANING UPDATES
-        -> categorical variables -> indicator variables (pd.get_dummies)
-        -> writing shouldn't have index
-        -> cleaning rows that have footnotes (using data dictionary)
-            #16 = Not Available
-            #19 = Not Available
-            #17 = The hospital star rating only based on inpatient services
-            #5 = Not Available
-            #22 = Not Available
-            #23 = The data is based on claims from the hospital
-    -> Future work
-        -> need some refresh pipeline....
-
-
-
-    BEFORE SATURDAY
-
-    -> Team Meeting
-        SATURDAY
-        -> agreeing on the footnotes that we should filter out
-            for hchahp need to verify how this transformation is actually impacting
-            data in relationship to mapping
-        -> Setting up pipeline to run through everything
-        -> each data owner should walk through and inspect their respective output dataset
-        -> taking stock of tasks for what needs to be done on saturday
-            -> infrastructure: lead point andre
-            -> ...?
-    -> brainstorming EDA and joining process
+        -> OLS linear models
+        -> ttests to assess the mean and whether or not there is a any signficant difference
+        -> anova to assess the difference between two or more catergories
+        -> anova on linear model: to assess the variance in the model
+    -> Additional analysis
+        -> what is the distribution of foot notes for hospital compare datasets
+            -> is this an indicator of a general trend in data collection for hospitals
+    -> transfer documentation that was used for cleaning pipeline deliverable
 
 
 """

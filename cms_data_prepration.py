@@ -1,4 +1,4 @@
-from dataframe_transformation_helpers import filter_all_nan_rows, create_lat_long_from_point, geocode_and_update_lat_lng, \
+from dataframe_transformation_helpers import filter_out_rows_with_cols_all_nans, create_lat_long_from_point, geocode_and_update_lat_lng, \
     format_zip_code, replace_with_nan, LAT_LNG_COL_NAMES, clean_columns
 from dataset_info import BaseDataInfo, DataTransformationInfo, DATA_TRANSFORMATION_FUNCTION_MAP
 import pandera as pa
@@ -25,7 +25,7 @@ def clean_nans(
     )
 
     if filter_all_nan_data_rows:
-        return filter_all_nan_rows(df, data_columns)
+        return filter_out_rows_with_cols_all_nans(df, data_columns)
     return df
 
 
@@ -46,7 +46,7 @@ def clean_locations(
             df[source_lat_lng_column].notnull(), source_lat_lng_column
         ]
         if "point" in sample_df.iloc[0].lower():
-            df = create_lat_long_from_point(df, source_lat_lng_column, lat_lng_columns=lat_lng_columns)
+            df = create_lat_long_from_point(df, source_lat_lng_column)
         else:
             raise NotImplementedError(
                 f"Unknown location type in {df.name} column: {source_lat_lng_column}\n"

@@ -2,11 +2,12 @@
 from dataclasses import dataclass
 from dataframe_transformation_helpers import (
     clean_x_out_of_n,
-    filter_all_nan_rows,
+    filter_out_rows_with_cols_all_nans,
     scrub_special_chars_from_column_values,
     categorize_columns,
     hcahps_hospital_widen
 )
+from cms_hospital_compare_footnote_data_dictionary import  CMS_HOSPITAL_COMPARE_FOOTNOTE_DATA_DICT
 import pandera as pa
 from pandera import Column, DataFrameSchema
 from typing import List, Dict, Optional
@@ -73,7 +74,6 @@ DATA_TRANSFORMATION_FUNCTION_MAP = {
     "data_transformation_functions": None,
 }
 
-
 @dataclass
 class DataTransformationInfo:
     data_column_category_map: Optional[Dict[str, List[str]]] = None
@@ -87,6 +87,11 @@ class DataTransformationInfo:
     def transformation_keys(cls):
         return [k for k in cls.__dict__ if "__" not in k and "transformation_keys" not in k]
 
+
+
+@dataclass
+class DataInfo(DataTransformationInfo, BaseDataInfo):
+    pass
 
 @dataclass
 class CMSDataInfo(DataTransformationInfo, BaseDataInfo):
@@ -175,7 +180,7 @@ complications_and_deaths_info = CMSDataInfo(
         ]
     },
     data_transformation_functions=[
-        lambda df: filter_all_nan_rows(df, complications_and_deaths_data_columns)
+        lambda df: filter_out_rows_with_cols_all_nans(df, complications_and_deaths_data_columns)
     ]
 
 )
@@ -237,3 +242,27 @@ hospital_value_based_performance_info = CMSDataInfo(
         )
     ]
 )
+
+# TODO(anewla): fill out using emmy's cleanup code as a base
+# us_city_population_estimates
+# us_city_population_estimates = DataInfo(
+#     schema=add_base_cms_schema({
+#         ".*_domain_score$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
+#         "total_performance_score": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
+#         "lat": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
+#         "lng": Column(pa.Float, **BASE_COL_SCHEMA_ARGS)
+#     }),
+#     data_columns_search_key=[".*score$"],
+#     point_location_column=POINT_LOCATION_COL,
+#     data_transformation_functions=[
+#         # NOTE(emmy): we found one facility_id: 330201 that had parentheses in it"s values for the following columns
+#         lambda df: scrub_special_chars_from_column_values(
+#             df,
+#             [
+#                 "unweighted_normalized_clinical_outcomes_domain_score",
+#                 "weighted_normalized_clinical_outcomes_domain_score",
+#                 "total_performance_score"
+#             ]
+#         )
+#     ]
+# )
