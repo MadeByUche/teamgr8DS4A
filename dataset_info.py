@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from dataframe_transformation_helpers import (
     clean_x_out_of_n,
-    filter_all_nan_rows,
+    filter_out_rows_with_cols_all_nans,
     scrub_special_chars_from_column_values,
     categorize_columns,
     hcahps_hospital_widen
@@ -73,7 +73,6 @@ DATA_TRANSFORMATION_FUNCTION_MAP = {
     "data_transformation_functions": None,
 }
 
-
 @dataclass
 class DataTransformationInfo:
     data_column_category_map: Optional[Dict[str, List[str]]] = None
@@ -88,13 +87,21 @@ class DataTransformationInfo:
         return [k for k in cls.__dict__ if "__" not in k and "transformation_keys" not in k]
 
 
+
 @dataclass
-class CMSDataInfo(DataTransformationInfo, BaseDataInfo):
+class DataInfo(DataTransformationInfo, BaseDataInfo):
+    pass
+
+@dataclass
+class CMSHospitalCompareDataInfo(DataTransformationInfo, BaseDataInfo):
+    # for datasets that follow hospital compare guidelines
+    # we clean rows based on foonotes that are used
+    clean_row_by_footnote: bool = True
+    # NOTE(anewla): this is currenlty not in use
     footnote_expansion_needed: bool = False
     point_location_column: Optional[str] = None
 
-
-hospital_general_information_info = CMSDataInfo(
+hospital_general_information_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "hospital_type": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
@@ -119,7 +126,7 @@ hospital_general_information_info = CMSDataInfo(
     }
 )
 
-patient_experience_care_domain_scores_info = CMSDataInfo(
+patient_experience_care_domain_scores_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         ".*_points$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
         ".*_threshold$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
@@ -148,7 +155,7 @@ complications_and_deaths_data_columns = [
     "compared_to_national", "denominator", "score", "lower_estimate", "higher_estimate"
 ]
 
-complications_and_deaths_info = CMSDataInfo(
+complications_and_deaths_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "measure_id": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
@@ -175,13 +182,13 @@ complications_and_deaths_info = CMSDataInfo(
         ]
     },
     data_transformation_functions=[
-        lambda df: filter_all_nan_rows(df, complications_and_deaths_data_columns)
+        lambda df: filter_out_rows_with_cols_all_nans(df, complications_and_deaths_data_columns)
     ]
 
 )
 
 # hospital_hchaps
-hospital_hchaps_info = CMSDataInfo(
+hospital_hchaps_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "survey_response_rate_percent": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
@@ -199,7 +206,7 @@ hospital_hchaps_info = CMSDataInfo(
 )
 
 # timely_effective_care_hospital
-timely_effective_care_hospital_info = CMSDataInfo(
+timely_effective_care_hospital_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "condition": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
@@ -216,7 +223,7 @@ timely_effective_care_hospital_info = CMSDataInfo(
 )
 
 # hospital_value_based_performance
-hospital_value_based_performance_info = CMSDataInfo(
+hospital_value_based_performance_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         ".*_domain_score$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
         "total_performance_score": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
@@ -237,3 +244,27 @@ hospital_value_based_performance_info = CMSDataInfo(
         )
     ]
 )
+
+# TODO(anewla): fill out using emmy's cleanup code as a base
+# us_city_population_estimates
+# us_city_population_estimates = DataInfo(
+#     schema=add_base_cms_schema({
+#         ".*_domain_score$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
+#         "total_performance_score": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
+#         "lat": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
+#         "lng": Column(pa.Float, **BASE_COL_SCHEMA_ARGS)
+#     }),
+#     data_columns_search_key=[".*score$"],
+#     point_location_column=POINT_LOCATION_COL,
+#     data_transformation_functions=[
+#         # NOTE(emmy): we found one facility_id: 330201 that had parentheses in it"s values for the following columns
+#         lambda df: scrub_special_chars_from_column_values(
+#             df,
+#             [
+#                 "unweighted_normalized_clinical_outcomes_domain_score",
+#                 "weighted_normalized_clinical_outcomes_domain_score",
+#                 "total_performance_score"
+#             ]
+#         )
+#     ]
+# )

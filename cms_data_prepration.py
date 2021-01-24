@@ -1,8 +1,14 @@
-from dataframe_transformation_helpers import filter_all_nan_rows, create_lat_long_from_point, geocode_and_update_lat_lng, \
+from dataframe_transformation_helpers import filter_out_rows_with_cols_all_nans, create_lat_long_from_point, \
+    geocode_and_update_lat_lng, \
     format_zip_code, replace_with_nan, LAT_LNG_COL_NAMES, clean_columns
-from dataset_info import BaseDataInfo, DataTransformationInfo, DATA_TRANSFORMATION_FUNCTION_MAP
+from dataset_info import BaseDataInfo, DataTransformationInfo, DATA_TRANSFORMATION_FUNCTION_MAP, \
+    CMSHospitalCompareDataInfo
+from cms_hospital_compare_footnote_data_dictionary import CMS_HOSPITAL_COMPARE_FOOTNOTE_DATA_DICT, POOR_SAMPLE_KEY
 import pandera as pa
 import re
+import numpy as np
+
+
 def clean_nans(
         df,
         data_columns=None,
@@ -25,7 +31,7 @@ def clean_nans(
     )
 
     if filter_all_nan_data_rows:
-        return filter_all_nan_rows(df, data_columns)
+        return filter_out_rows_with_cols_all_nans(df, data_columns)
     return df
 
 
@@ -46,7 +52,7 @@ def clean_locations(
             df[source_lat_lng_column].notnull(), source_lat_lng_column
         ]
         if "point" in sample_df.iloc[0].lower():
-            df = create_lat_long_from_point(df, source_lat_lng_column, lat_lng_columns=lat_lng_columns)
+            df = create_lat_long_from_point(df, source_lat_lng_column)
         else:
             raise NotImplementedError(
                 f"Unknown location type in {df.name} column: {source_lat_lng_column}\n"
@@ -66,28 +72,84 @@ def clean_locations(
     return df
 
 
+def nan_data_column_by_footnote(df):
+    # Walks through footnote columns using mappings dict and replaces any data source in the source column
+    # with nan. (source column is the column for which the footnote column is responsible for)
+    footnote_columns = [c for c in df.columns if re.search("footnote", c) is not None]
+    columns_with_footnotes = {
+        footnote_column.split("_footnote")[0]: footnote_column
+        for footnote_column in footnote_columns
+    }
+    # NOTE(anewla): for sake of convenience, we will store footnotes both as integers and floats wrapped as strings
+    # to ensure we capture any and all footnotes in the dataset
+    bad_sample_footnotes = []
+    for k, v in CMS_HOSPITAL_COMPARE_FOOTNOTE_DATA_DICT.items():
+        if v.get(POOR_SAMPLE_KEY, False):
+            bad_sample_footnotes.extend([str(k), str(float(k))])
+    if bad_sample_footnotes:
+        # NOTE(anewla): this code could be used to completely filter out any rows that have a column with a poor sampling footnote
+        # rows_with_bad_footnotes = eval(" | ".join(
+        #         [
+        #             f"(df['{c}'].astype(str).str.split(', ').apply(lambda x: len({bad_sample_footnotes_set}.intersection(x)) > 0))"
+        #             for c in footnote_columns
+        #         ]
+        #      )
+        # )
+        # return df[~rows_with_bad_footnotes]
+        bad_sample_footnotes_set = set(bad_sample_footnotes)
+        for data_column, footnote_column in columns_with_footnotes.items():
+            df.loc[
+                df[footnote_column].astype(str).str.split(',').apply(
+                    lambda x: len(set(bad_sample_footnotes).intersection(x)) > 0
+                ),
+                data_column
+            ] = np.nan
+    return df
+
+
+def row_diff_msg(row_count_pre_clean, row_count_post_clean, msg_prefix):
+    print(
+        f"{msg_prefix} -> REMOVED: {row_count_post_clean} rows "
+        f"{round((row_count_post_clean - row_count_pre_clean) / row_count_pre_clean, 2) * 100}% of the data"
+    )
+
+
 def clean_dataset(df, name, data_info: BaseDataInfo, **kwargs):
-    print(f"CLEANING {name}")
+    msg_prefix = f"CLEANING: {name}"
+    print(msg_prefix)
     rtn_df = df.copy()
     rtn_df.name = name
 
-    print(f"CLEANING: {name} --> clean_columns")
+    print(f"{msg_prefix} --> clean_columns")
     rtn_df = clean_columns(rtn_df)
 
-    print(f"CLEANING: {name} --> format_zip_code")
+    print(f"{msg_prefix} --> format_zip_code")
     rtn_df = format_zip_code(rtn_df)
 
-    print(f"CLEANING: {name} --> clean_nans")
+    clean_footnotes_msg = f"{msg_prefix} --> clean_footnotes"
+    print(clean_footnotes_msg)
+    if isinstance(data_info, CMSHospitalCompareDataInfo):
+        row_count_pre_clean = rtn_df.shape[0]
+        rtn_df = nan_data_column_by_footnote(rtn_df)
+        row_count_post_clean = rtn_df.shape[0]
+        row_diff_msg(row_count_pre_clean, row_count_post_clean, clean_footnotes_msg)
+
+    clean_nans_msg = f"{msg_prefix} --> clean_nans"
+    print(clean_nans_msg)
+    row_count_pre_clean = rtn_df.shape[0]
     rtn_df = clean_nans(rtn_df, **kwargs)
+    row_count_post_clean = rtn_df.shape[0]
+    row_diff_msg(row_count_pre_clean, row_count_post_clean, clean_nans_msg)
+
     # NOTE(anewla): we are actually cleaning through all values, if we find that this is causing issues we can isolate
     # to the columns of interest through the following
     # nan_replacement_lst = data_info.data_columns
     # nan_replacement_str_key_lst = data_info.data_columns_search_key
 
-    print(f"CLEANING: {name} --> clean_locations")
+    print(f"{msg_prefix} --> clean_locations")
     rtn_df = clean_locations(rtn_df, source_lat_lng_column=data_info.point_location_column, **kwargs)
 
-    print(f"CLEANING {name} - COMPLETE")
+    print(f"{msg_prefix} - COMPLETE")
     return rtn_df
 
 
@@ -116,7 +178,7 @@ def prepare_and_transform_dataset(df, name, data_info: BaseDataInfo, **kwargs):
         str_e = str(e)
         coercing_issue = "Error while coercing"
         col_missing = "not in dataframe"
-        if coercing_issue  in str_e:
+        if coercing_issue in str_e:
             msg = "Sample of column with exception. col:"
             col = str_e[len(coercing_issue):].split("'")[1]
             schema_column = data_info.schema.columns[col]
@@ -135,6 +197,7 @@ def prepare_and_transform_dataset(df, name, data_info: BaseDataInfo, **kwargs):
     print(f"DATA PREPERATION {name} - COMPLETE")
     rtn_df.name = name
     return rtn_df
+
 
 def clean_and_prepare_dataset(df, name, data_info: BaseDataInfo, **kwargs):
     rtn_df = df.copy()
