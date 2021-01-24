@@ -16,30 +16,43 @@ import dataset_info as d_info
 
 NAN_REPLACEMENT_STR_KEY_LST = ["Not "]
 
-DATA_FILES_INFO = {
+DATA_FILES_TO_CLEAN = {
     "hospital_general_information": {
-        'file_name': "Hospital_General_Information.csv",
+        'file_name': "hospital_general_information.csv",
         'data_info': d_info.hospital_general_information_info
     },
     "patient_experience_care_domain_scores": {
-        'file_name': "Hospital_Value-Based_Purchasing__HVBP____Patient_Experience_of_Care_Domain_Scores__HCAHPS_.csv",
+        'file_name': "patient_experience_care_domain_scores.csv",
         'data_info': d_info.patient_experience_care_domain_scores_info
     },
     "complications_and_deaths": {
-        'file_name': "complications_deaths.csv",
+        'file_name': "complications_and_deaths.csv",
         'data_info': d_info.complications_and_deaths_info
     },
     "hospital_hchaps": {
-        'file_name': "patient_survey__hcahps_hospital.csv",
+        'file_name': "hospital_hchaps.csv",
         'data_info': d_info.hospital_hchaps_info
     },
     "timely_effective_care_hospital": {
-        'file_name': "Timely_and_Effective_Care_-_Hospital.csv",
+        'file_name': "timely_effective_care_hospital.csv",
         'data_info': d_info.timely_effective_care_hospital_info
     },
     "hospital_value_based_performance": {
-        'file_name': "Hospital_Value-Based_Purchasing__HVBP____Total_Performance_Score.csv",
+        'file_name': "hospital_value_based_performance.csv",
         'data_info': d_info.hospital_value_based_performance_info
+    },
+    # "us_city_population_estimates": {
+    #     'file_name': "us_city_population_estimates.csv",
+    #     'data_info': d_info.hospital_value_based_performance_info
+    # },
+}
+
+# TODO(anewla): build pipeline to generate this table
+ANALYSIS_DATA_FILES = {
+    # what are the various views that we would like for our analysis?
+    "prod_data": {
+        "input": [],
+        "output": ""
     },
 }
 
@@ -52,15 +65,15 @@ def read_csv(df_name, path):
     return df
 
 
-def write_csv(df, file_path):
-    df.to_csv(file_path)
+def write_csv(df, file_path, index=False):
+    df.to_csv(file_path, index=index)
 
 
-def main(raw_dir="raw", output_dir="cleaned", write=False, process_list=[], data_files_info=DATA_FILES_INFO, print_samples=False):
+def main(raw_dir="raw", output_dir="cleaned", write=False, process_list=[], data_files_info=DATA_FILES_TO_CLEAN, print_samples=False):
     df_dict = {}
     for name, info in data_files_info.items():
         if not process_list or name in process_list:
-            curr_file_name = info['file_name']
+            curr_file_name = data_files_info[name]['file_name']
             curr_df = read_csv(name, os.path.join(raw_dir, curr_file_name))
             df_dict[name] = clean_and_prepare_dataset(
                 curr_df,

@@ -4,6 +4,10 @@ import re
 import numpy as np
 
 LAT_LNG_COL_NAMES = ['lat', 'lng']
+GEO_COORD_COLUMN_NAME = "lat_lng"
+POINT_TO_LAT_LNG_COL_NAMES = ['lng', 'lat']
+# point column normally has values of type: POINT (-121.77291599999998 37.246742)
+# oddly enough it is described in lng, lat instead of lat,lng, so we flip
 SP_CHARS_LST = "!,@,#,$,%,^,&,\(,\),\*,-".split(",")
 
 
@@ -80,20 +84,20 @@ def replace_with_nan(
     return df
 
 
-def create_lat_long_from_point(df, point_column, lat_lng_columns=LAT_LNG_COL_NAMES, drop_point_column=True):
+def create_lat_long_from_point(df, point_column, new_coord_columns=POINT_TO_LAT_LNG_COL_NAMES, drop_point_column=True, add_geocoord=True):
     # clean Location column (remove characters, split into lat and long columns, and change to type float)
-    # point column normally has values of type: POINT (-121.77291599999998 37.246742)
     df[point_column] = df[point_column].str.slice(start=7, stop=-1)
-    df[lat_lng_columns] = df[point_column].str.split(expand=True)
+    df[new_coord_columns] = df[point_column].str.split(expand=True)
+    if add_geocoord:
+        df[GEO_COORD_COLUMN_NAME] = df[LAT_LNG_COL_NAMES[0]] + "," + df[LAT_LNG_COL_NAMES[1]]
     if drop_point_column:
         df.drop(columns=point_column, inplace=True)
     return df
 
 
-def filter_all_nan_rows(df, data_columns):
+def filter_out_rows_with_cols_all_nans(df, data_columns):
     some_data_map = eval(" | ".join([f"(df['{c}'].notnull())" for c in data_columns]))
     return df[some_data_map]
-
 
 def drop_unneeded_columns(df, columns_to_drop):
     for c in columns_to_drop:
