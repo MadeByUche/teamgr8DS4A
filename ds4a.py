@@ -1,13 +1,6 @@
 """
 WORK
     -> generating clean prod output
-        -> output shouldn't have leading index column
-        -> Footnote cleansing
-            -> there is already a footnote expansion column, since some of them have comma's (i think)
-                -> however we can probably do a string contains search
-            -> cleaning pipeline should indicate the number of records that were scrubbed due tot he footnote process
-                -> additionally a pipeline should be generated that does contain foot note data (to enable
-                    future footnote analysis)
         -> categorical data as dummies (certain measures in timely and effective care as well as complications and deths)
         -> cleaning pipeline: us_city_population_estimates
     -> adding analysis pipeline functionality

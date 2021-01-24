@@ -7,7 +7,6 @@ from dataframe_transformation_helpers import (
     categorize_columns,
     hcahps_hospital_widen
 )
-from cms_hospital_compare_footnote_data_dictionary import  CMS_HOSPITAL_COMPARE_FOOTNOTE_DATA_DICT
 import pandera as pa
 from pandera import Column, DataFrameSchema
 from typing import List, Dict, Optional
@@ -94,12 +93,15 @@ class DataInfo(DataTransformationInfo, BaseDataInfo):
     pass
 
 @dataclass
-class CMSDataInfo(DataTransformationInfo, BaseDataInfo):
+class CMSHospitalCompareDataInfo(DataTransformationInfo, BaseDataInfo):
+    # for datasets that follow hospital compare guidelines
+    # we clean rows based on foonotes that are used
+    clean_row_by_footnote: bool = True
+    # NOTE(anewla): this is currenlty not in use
     footnote_expansion_needed: bool = False
     point_location_column: Optional[str] = None
 
-
-hospital_general_information_info = CMSDataInfo(
+hospital_general_information_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "hospital_type": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
@@ -124,7 +126,7 @@ hospital_general_information_info = CMSDataInfo(
     }
 )
 
-patient_experience_care_domain_scores_info = CMSDataInfo(
+patient_experience_care_domain_scores_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         ".*_points$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
         ".*_threshold$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
@@ -153,7 +155,7 @@ complications_and_deaths_data_columns = [
     "compared_to_national", "denominator", "score", "lower_estimate", "higher_estimate"
 ]
 
-complications_and_deaths_info = CMSDataInfo(
+complications_and_deaths_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "measure_id": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
@@ -186,7 +188,7 @@ complications_and_deaths_info = CMSDataInfo(
 )
 
 # hospital_hchaps
-hospital_hchaps_info = CMSDataInfo(
+hospital_hchaps_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "survey_response_rate_percent": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
@@ -204,7 +206,7 @@ hospital_hchaps_info = CMSDataInfo(
 )
 
 # timely_effective_care_hospital
-timely_effective_care_hospital_info = CMSDataInfo(
+timely_effective_care_hospital_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         "phone_number": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
         "condition": Column(pa.String, **BASE_COL_SCHEMA_ARGS),
@@ -221,7 +223,7 @@ timely_effective_care_hospital_info = CMSDataInfo(
 )
 
 # hospital_value_based_performance
-hospital_value_based_performance_info = CMSDataInfo(
+hospital_value_based_performance_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
         ".*_domain_score$": Column(pa.Float, **BASE_COL_SCHEMA_ARGS, regex=True),
         "total_performance_score": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),

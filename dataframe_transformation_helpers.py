@@ -99,7 +99,6 @@ def filter_out_rows_with_cols_all_nans(df, data_columns):
     some_data_map = eval(" | ".join([f"(df['{c}'].notnull())" for c in data_columns]))
     return df[some_data_map]
 
-
 def drop_unneeded_columns(df, columns_to_drop):
     for c in columns_to_drop:
         if c in df.columns:

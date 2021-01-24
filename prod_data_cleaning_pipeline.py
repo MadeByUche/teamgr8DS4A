@@ -65,8 +65,8 @@ def read_csv(df_name, path):
     return df
 
 
-def write_csv(df, file_path):
-    df.to_csv(file_path)
+def write_csv(df, file_path, index=False):
+    df.to_csv(file_path, index=index)
 
 
 def main(raw_dir="raw", output_dir="cleaned", write=False, process_list=[], data_files_info=DATA_FILES_TO_CLEAN, print_samples=False):
