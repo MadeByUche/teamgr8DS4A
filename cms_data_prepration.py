@@ -10,12 +10,12 @@ import numpy as np
 
 
 def clean_nans(
-        df,
-        data_columns=None,
-        filter_all_nan_data_rows=False,
-        nan_replacement_lst=None,
-        nan_replacement_str_key_lst=None,
-        **kwargs
+    df,
+    data_columns=None,
+    filter_rows_with_all_nan_data_columns=False,
+    nan_replacement_lst=None,
+    nan_replacement_str_key_lst=None,
+    **kwargs
 ):
     """
     data_columns: columns that have valuable data in them, and should be cleaned with extra care
@@ -30,7 +30,7 @@ def clean_nans(
         replacement_str_key_lst=nan_replacement_str_key_lst
     )
 
-    if filter_all_nan_data_rows:
+    if filter_rows_with_all_nan_data_columns:
         return filter_out_rows_with_cols_all_nans(df, data_columns)
     return df
 
@@ -86,6 +86,7 @@ def nan_data_column_by_footnote(df):
     for k, v in CMS_HOSPITAL_COMPARE_FOOTNOTE_DATA_DICT.items():
         if v.get(POOR_SAMPLE_KEY, False):
             bad_sample_footnotes.extend([str(k), str(float(k))])
+    num_edited_data_points = 0
     if bad_sample_footnotes:
         # NOTE(anewla): this code could be used to completely filter out any rows that have a column with a poor sampling footnote
         # rows_with_bad_footnotes = eval(" | ".join(
@@ -98,19 +99,18 @@ def nan_data_column_by_footnote(df):
         # return df[~rows_with_bad_footnotes]
         bad_sample_footnotes_set = set(bad_sample_footnotes)
         for data_column, footnote_column in columns_with_footnotes.items():
-            df.loc[
-                df[footnote_column].astype(str).str.split(',').apply(
+            df_filter = df[footnote_column].astype(str).str.split(',').apply(
                     lambda x: len(set(bad_sample_footnotes).intersection(x)) > 0
-                ),
-                data_column
-            ] = np.nan
-    return df
+            )
+            num_edited_data_points += df_filter.sum()
+            df.loc[df_filter, data_column] = np.nan
+    return df, num_edited_data_points
 
 
-def row_diff_msg(row_count_pre_clean, row_count_post_clean, msg_prefix):
+def percent_diff_msg(count_pre_clean, count_post_clean, msg_prefix, diff_type="row"):
     print(
-        f"{msg_prefix} -> REMOVED: {row_count_post_clean} rows "
-        f"{round((row_count_post_clean - row_count_pre_clean) / row_count_pre_clean, 2) * 100}% of the data"
+        f"{msg_prefix} -> new {diff_type} count: {count_post_clean} {diff_type}\n"
+        f"DIFF PERCENTAGE {round((count_post_clean - count_pre_clean) / count_pre_clean, 2) * 100}% of the data"
     )
 
 
@@ -129,27 +129,26 @@ def clean_dataset(df, name, data_info: BaseDataInfo, **kwargs):
     clean_footnotes_msg = f"{msg_prefix} --> clean_footnotes"
     print(clean_footnotes_msg)
     if isinstance(data_info, CMSHospitalCompareDataInfo):
-        row_count_pre_clean = rtn_df.shape[0]
-        rtn_df = nan_data_column_by_footnote(rtn_df)
-        row_count_post_clean = rtn_df.shape[0]
-        row_diff_msg(row_count_pre_clean, row_count_post_clean, clean_footnotes_msg)
+        data_point_total = rtn_df.shape[0] * rtn_df.shape[1]
+        rtn_df, num_nan_data_points = nan_data_column_by_footnote(rtn_df)
+        percent_diff_msg(data_point_total, data_point_total - num_nan_data_points, clean_footnotes_msg, "data points")
 
     clean_nans_msg = f"{msg_prefix} --> clean_nans"
     print(clean_nans_msg)
     row_count_pre_clean = rtn_df.shape[0]
-    rtn_df = clean_nans(rtn_df, **kwargs)
+    rtn_df = clean_nans(
+        rtn_df,
+        data_columns=data_info.data_columns + tuple([c for c in rtn_df.columns for search_key in data_info.data_columns_search_key  if re.search(search_key, c) if c is not None]),
+        filter_rows_with_all_nan_data_columns=True,
+        **kwargs
+    )
     row_count_post_clean = rtn_df.shape[0]
-    row_diff_msg(row_count_pre_clean, row_count_post_clean, clean_nans_msg)
-
-    # NOTE(anewla): we are actually cleaning through all values, if we find that this is causing issues we can isolate
-    # to the columns of interest through the following
-    # nan_replacement_lst = data_info.data_columns
-    # nan_replacement_str_key_lst = data_info.data_columns_search_key
+    percent_diff_msg(row_count_pre_clean, row_count_post_clean, clean_nans_msg)
 
     print(f"{msg_prefix} --> clean_locations")
     rtn_df = clean_locations(rtn_df, source_lat_lng_column=data_info.point_location_column, **kwargs)
 
-    print(f"{msg_prefix} - COMPLETE")
+    print(f"{msg_prefix} - COMPLETE -> {rtn_df.shape}")
     return rtn_df
 
 
