@@ -9,7 +9,7 @@ from dataframe_transformation_helpers import (
 )
 import pandera as pa
 from pandera import Column, DataFrameSchema
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 import copy
 
 file_with_point_locations = [
@@ -47,8 +47,8 @@ def add_base_cms_schema(schema):
 @dataclass
 class BaseDataInfo:
     schema: DataFrameSchema
-    data_columns: Optional[List[str]] = ()
-    data_columns_search_key: Optional[List[str]] = ()
+    data_columns: Optional[Tuple[str]] = ()
+    data_columns_search_key: Optional[Tuple[str]] = ()
 
 
 def wrapped_categorize_columns(df, data_info):
@@ -115,7 +115,7 @@ hospital_general_information_info = CMSHospitalCompareDataInfo(
         "lat": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
         "lng": Column(pa.Float, **BASE_COL_SCHEMA_ARGS)
     }),
-    data_columns_search_key=[".*_rating$", ".*_comparison$"],
+    data_columns_search_key=(".*_rating$", ".*_comparison$"),
     point_location_column=POINT_LOCATION_COL,
     data_column_search_key_category_map={
         ".*_comparison$": [
@@ -137,9 +137,9 @@ patient_experience_care_domain_scores_info = CMSHospitalCompareDataInfo(
         "lat": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
         "lng": Column(pa.Float, **BASE_COL_SCHEMA_ARGS),
     }),
-    data_columns_search_key=[".*_points$", ".*_threshold$", ".*_rate$", ".*_benchmark$", ".*_dimension_score$",
+    data_columns_search_key=(".*_points$", ".*_threshold$", ".*_rate$", ".*_benchmark$", ".*_dimension_score$",
                              ".*_floor$",
-                             ".*_score$"],
+                             ".*_score$"),
     point_location_column=POINT_LOCATION_COL,
     data_transformation_functions=[
         lambda df: clean_x_out_of_n(df, column_search_key=".*_points$"),
@@ -151,9 +151,9 @@ patient_experience_care_domain_scores_info = CMSHospitalCompareDataInfo(
     ]
 )
 
-complications_and_deaths_data_columns = [
+complications_and_deaths_data_columns = (
     "compared_to_national", "denominator", "score", "lower_estimate", "higher_estimate"
-]
+)
 
 complications_and_deaths_info = CMSHospitalCompareDataInfo(
     schema=add_base_cms_schema({
@@ -219,7 +219,7 @@ timely_effective_care_hospital_info = CMSHospitalCompareDataInfo(
         "end_date": Column(pa.DateTime, **BASE_COL_SCHEMA_ARGS),
 
     }),
-    data_columns=["score", "sample"]
+    data_columns=("score", "sample")
 )
 
 # hospital_value_based_performance
