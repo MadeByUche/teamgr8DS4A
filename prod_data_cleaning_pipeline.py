@@ -29,10 +29,10 @@ DATA_FILES_TO_CLEAN = {
         'file_name': "complications_and_deaths.csv",
         'data_info': d_info.complications_and_deaths_info
     },
-    "hospital_hchaps": {
-        'file_name': "hospital_hchaps.csv",
-        'data_info': d_info.hospital_hchaps_info
-    },
+    # "hospital_hchaps": {
+    #     'file_name': "hospital_hchaps.csv",
+    #     'data_info': d_info.hospital_hchaps_info
+    # },
     "timely_effective_care_hospital": {
         'file_name': "timely_effective_care_hospital.csv",
         'data_info': d_info.timely_effective_care_hospital_info
