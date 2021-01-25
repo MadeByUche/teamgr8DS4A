@@ -47,8 +47,8 @@ def add_base_cms_schema(schema):
 @dataclass
 class BaseDataInfo:
     schema: DataFrameSchema
-    data_columns: Optional[List[str]] = None
-    data_columns_search_key: Optional[List[str]] = None
+    data_columns: Optional[List[str]] = ()
+    data_columns_search_key: Optional[List[str]] = ()
 
 
 def wrapped_categorize_columns(df, data_info):
