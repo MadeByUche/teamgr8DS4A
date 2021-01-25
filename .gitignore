@@ -1,4 +1,5 @@
 raw/*
 cleaned/*
 *.pyc
+__pycache__/*
 .idea
