@@ -101,7 +101,7 @@ def main(
             print()
     if write:
         for name in df_dict:
-            curr_file_name = data_files_info[name]['file_name'] if not use_df_name_as_output_file_name else df_dict[name] + ".csv"
+            curr_file_name = data_files_info[name]['file_name'] if not use_df_name_as_output_file_name else f"{name}.csv"
             write_csv(df_dict[name], os.path.join(output_dir, curr_file_name))
     return df_dict
 
