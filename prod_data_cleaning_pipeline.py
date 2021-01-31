@@ -92,7 +92,7 @@ def main(raw_dir="raw", output_dir="cleaned", write=False, process_list=[], data
     if write:
         for name in df_dict:
             curr_file_name = data_files_info[name]['file_name']
-            write_csv(df_dict[name], os.path.join(output_dir, curr_file_name))
+            write_csv(df_dict[name], df_dict[name], os.path.join(output_dir, curr_file_name))
     return df_dict
 
 
