@@ -69,7 +69,17 @@ def write_csv(df, file_path, index=False):
     df.to_csv(file_path, index=index)
 
 
-def main(raw_dir="raw", output_dir="cleaned", write=False, process_list=[], data_files_info=DATA_FILES_TO_CLEAN, print_samples=False, read_csv=read_csv, write_csv=write_csv):
+def main(
+    raw_dir="raw",
+    output_dir="cleaned",
+    write=False,
+    process_list=[],
+    data_files_info=DATA_FILES_TO_CLEAN,
+    print_samples=False,
+    read_csv=read_csv,
+    write_csv=write_csv,
+    use_df_name_as_output_file_name=False
+):
     df_dict = {}
     for name, info in data_files_info.items():
         if not process_list or name in process_list:
@@ -91,8 +101,8 @@ def main(raw_dir="raw", output_dir="cleaned", write=False, process_list=[], data
             print()
     if write:
         for name in df_dict:
-            curr_file_name = data_files_info[name]['file_name']
-            write_csv(df_dict[name], df_dict[name], os.path.join(output_dir, curr_file_name))
+            curr_file_name = data_files_info[name]['file_name'] if not use_df_name_as_output_file_name else df_dict[name]
+            write_csv(df_dict[name], os.path.join(output_dir, curr_file_name))
     return df_dict
 
 
